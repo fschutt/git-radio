@@ -40,6 +40,14 @@ jobs:
             --width 800 \
             --height 450
 
+      - name: Verify frame generation
+        run: |
+          if [ -z "$(ls -A frames/*.png 2>/dev/null)" ]; then
+            echo "Error: No PNG frames were generated." >&2
+            exit 1
+          fi
+          echo "Successfully generated PNG frames."
+
       - name: Create video from frames
         run: |
           ffmpeg -framerate 30 -i frames/frame_%06d.png -c:v libx264 -pix_fmt yuv420p -crf 23 git-radio-visualization.mp4
