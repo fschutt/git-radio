@@ -156,7 +156,7 @@ fn heat_to_color(heat: usize) -> Rgb<u8> {
     let final_color = LinSrgb::new(r, g, b);
 
     // Convert from linear sRGB to standard sRGB
-    let srgb = Srgb::from_linear(final_color);
+    let srgb: Srgb<f32> = Srgb::from_linear(final_color);
     let (r, g, b) = srgb.into_components();
     let r_u8 = (r * 255.0f32) as u8;
     let g_u8 = (g * 255.0f32) as u8;
