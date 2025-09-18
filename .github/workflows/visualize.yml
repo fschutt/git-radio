@@ -40,6 +40,14 @@ jobs:
             --width 800 \
             --height 450
 
+      - name: Verify frame generation
+        run: |
+          if [ $(find frames -maxdepth 1 -name '*.png' -print -quit | wc -l) -eq 0 ]; then
+            echo "Error: No PNG frames were generated."
+            exit 1
+          fi
+          echo "Successfully generated at least one PNG frame."
+
       - name: Create video from frames
         run: |
           ffmpeg -framerate 30 -i frames/frame_%06d.png -c:v libx264 -pix_fmt yuv420p -crf 23 git-radio-visualization.mp4
