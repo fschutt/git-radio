@@ -6,6 +6,7 @@ mod model;
 mod renderer;
 
 use clap::Parser;
+use chrono::TimeZone;
 use cli::Args;
 use std::time::Instant;
 

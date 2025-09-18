@@ -2,10 +2,10 @@
 
 use crate::cli::{Args, Mode};
 use crate::model::*;
-use chrono::{Duration, Utc, TimeZone};
+use chrono::Duration;
 use image::{Rgb, RgbImage};
 use indicatif::{ParallelProgressIterator, ProgressBar};
-use palette::{Gradient, Lch, Srgb};
+use palette::{FromColor, Lch, LinSrgb, Srgb};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
@@ -129,29 +129,53 @@ fn render_frame(
 
 // Blue-to-Orange color gradient for hotness
 fn heat_to_color(heat: usize) -> Rgb<u8> {
-    let gradient = Gradient::new(vec![
-        Lch::new(20.0, 30.0, 250.0), // Dark Blue
-        Lch::new(40.0, 40.0, 260.0), // Blue
-        Lch::new(95.0, 35.0, 90.0),  // Light Yellow
-        Lch::new(75.0, 80.0, 50.0),  // Orange
-        Lch::new(65.0, 100.0, 30.0), // Red-Orange
-    ]);
+    let lch_colors = vec![
+        Lch::new(20.0f32, 30.0f32, 250.0f32), // Dark Blue
+        Lch::new(40.0f32, 40.0f32, 260.0f32), // Blue
+        Lch::new(95.0f32, 35.0f32, 90.0f32),  // Light Yellow
+        Lch::new(75.0f32, 80.0f32, 50.0f32),  // Orange
+        Lch::new(65.0f32, 100.0f32, 30.0f32), // Red-Orange
+    ];
+    let gradient_stops: Vec<LinSrgb<f32>> = lch_colors.into_iter().map(LinSrgb::from_color).collect();
 
-    // Clamp heat for a reasonable visual range
-    let heat_float = (heat as f32 / 10.0).min(1.0);
-    let color = gradient.get(heat_float);
-    let (r, g, b) = Srgb::from_linear(color.into()).into_components();
-    Rgb([(r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8])
+    // Clamp heat for a reasonable visual range and scale to gradient size
+    let heat_float = (heat as f32 / 10.0f32).min(1.0f32);
+    let scaled_pos = heat_float * (gradient_stops.len() - 1) as f32;
+
+    let idx1 = scaled_pos.floor() as usize;
+    let idx2 = (idx1 + 1).min(gradient_stops.len() - 1);
+    let t = scaled_pos.fract();
+
+    let c1 = gradient_stops[idx1];
+    let c2 = gradient_stops[idx2];
+
+    // Manual linear interpolation
+    let r = c1.red + (c2.red - c1.red) * t;
+    let g = c1.green + (c2.green - c1.green) * t;
+    let b = c1.blue + (c2.blue - c1.blue) * t;
+    let final_color = LinSrgb::new(r, g, b);
+
+    // Convert from linear sRGB to standard sRGB
+    let srgb = Srgb::from_linear(final_color);
+    let (r, g, b) = srgb.into_components();
+    let r_u8 = (r * 255.0f32) as u8;
+    let g_u8 = (g * 255.0f32) as u8;
+    let b_u8 = (b * 255.0f32) as u8;
+    Rgb([r_u8, g_u8, b_u8])
 }
 
 fn generate_committer_colors(num_committers: usize) -> Vec<Rgb<u8>> {
     let mut rng = StdRng::seed_from_u64(42); // Seed for deterministic colors
     (0..num_committers)
         .map(|_| {
-            let hue = rng.gen_range(0.0..360.0);
-            let color = Lch::new(70.0, 80.0, hue); // Bright, saturated colors
-            let (r, g, b) = Srgb::from_linear(color.into()).into_components();
-            Rgb([(r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8])
+            let hue = rng.gen_range(0.0f32..360.0f32);
+            let color = Lch::new(70.0f32, 80.0f32, hue); // Bright, saturated colors
+            let srgb: Srgb<f32> = Srgb::from_color(color);
+            let (r, g, b) = srgb.into_components();
+            let r_u8 = (r * 255.0f32) as u8;
+            let g_u8 = (g * 255.0f32) as u8;
+            let b_u8 = (b * 255.0f32) as u8;
+            Rgb([r_u8, g_u8, b_u8])
         })
         .collect()
 }

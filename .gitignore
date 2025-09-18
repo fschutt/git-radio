@@ -1,0 +1,5 @@
+# Ignore the cargo build directory
+target/
+
+# Ignore the lock file
+Cargo.lock

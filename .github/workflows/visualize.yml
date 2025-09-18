@@ -42,11 +42,11 @@ jobs:
 
       - name: Verify frame generation
         run: |
-          if [ $(find frames -maxdepth 1 -name '*.png' -print -quit | wc -l) -eq 0 ]; then
-            echo "Error: No PNG frames were generated."
+          if [ -z "$(ls -A frames/*.png 2>/dev/null)" ]; then
+            echo "Error: No PNG frames were generated." >&2
             exit 1
           fi
-          echo "Successfully generated at least one PNG frame."
+          echo "Successfully generated PNG frames."
 
       - name: Create video from frames
         run: |
